@@ -40,7 +40,7 @@
                 <hr class="my-3">
                 <div class="d-flex gap-2">
                     <button class="btn btn-primary btn-sm w-100" onclick="getFilters()">Применить</button>
-                    <button class="btn btn-light btn-sm w-100 border">Сброс</button>
+                    <button class="btn btn-light btn-sm w-100 border" onclick="loadAccounts()">Сброс</button>
                 </div>
             </div>
         </div>
@@ -158,6 +158,12 @@
     });
         const json = await response.json();
 
+        insertTable(json);
+    }
+
+
+    async function insertTable(json)
+    {
         const tbody = document.getElementById("accountsTableBody");
 
         tbody.innerHTML = "";
@@ -393,18 +399,9 @@
             value: document.getElementById("filterName").value
        });
         const response = await fetch(`/Home/GetFilters?${params.toString()}`)
-        const jsonIds = await response.json();
-        console.log(jsonIds);
-        const tableBody = document.getElementById("accountsTableBody");
-        const rows = tableBody.querySelectorAll("tr");
-
-        rows.forEach(row =>{
-            const rowGuid = row.id.replace('row-', '');
-
-            if (!jsonIds.includes(rowGuid)) {
-                 row.remove();
-            }
-        })
+        const json = await response.json();
+        
+        insertTable(json);
     }
 
     // Вспомогательная функция для маппинга Enum
