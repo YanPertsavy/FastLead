@@ -1,4 +1,5 @@
-﻿using FastLead.Models;
+﻿using FastLead.DTO;
+using FastLead.Models;
 using System.Linq.Expressions;
 
 namespace FastLead.Interfaces
@@ -12,6 +13,7 @@ namespace FastLead.Interfaces
         Task DeleteAsync(Guid id);
         Task BulkDelete(List<Guid> ids);
         Task<List<Account>> GetRangeAsync(List<Guid> ids);
-        Task<List<Guid>> GetFiltersAsync(string field, string value);
+        Task<List<AccountDto>> GetFiltersAsync(string field, string value);
+        Task<List<AccountDto>> GetAllDtoAsync();
     }
 }

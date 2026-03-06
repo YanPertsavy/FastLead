@@ -1,4 +1,6 @@
-﻿using FastLead.Interfaces;
+﻿using FastLead.DTO;
+using FastLead.Enums;
+using FastLead.Interfaces;
 using FastLead.Models;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -59,7 +61,7 @@ namespace FastLead.Repositories
             return accs;
         }
 
-        public async Task<List<Guid>> GetFiltersAsync(string field, string value)
+        public async Task<List<AccountDto>> GetFiltersAsync(string field, string value)
         {
             var query = _context.Accounts.AsNoTracking().AsQueryable();
 
@@ -73,12 +75,38 @@ namespace FastLead.Repositories
                     "Owner" => query.Where(a => a.Owner.Contains(value)),
                     "Phone" => query.Where(a => a.Phone.Contains(value)),
                     "Address" => query.Where(a => a.Address.Contains(value)),
-                    "Type" => query.Where(a => a.Type.ToString().Contains(value)),
+                    // Для Enum лучше использовать точное совпадение или парсинг
+                    "Type" => Enum.TryParse<AccountType>(value, true, out var typeResult)
+                              ? query.Where(a => a.Type == typeResult)
+                              : query,
                     _ => query
                 };
             }
 
-            return await query.Select(a => a.Id).ToListAsync();
+            // Вместо Select(a => a.Id) делаем проекцию в DTO
+            return await query.Select(a => new AccountDto
+            {
+                Id = a.Id,
+                Name = a.Name,
+                Type = a.Type,
+                Address = a.Address,
+                INN = a.INN
+            }).ToListAsync();
+        }
+
+        public async Task<List<AccountDto>> GetAllDtoAsync()
+        {
+            return await _context.Accounts
+                .AsNoTracking() // Ускоряет чтение, так как данные только для отображения
+                .Select(a => new AccountDto
+                {
+                    Id = a.Id,
+                    Name = a.Name,
+                    Type = a.Type,
+                    Address = a.Address,
+                    INN = a.INN
+                })
+                .ToListAsync();
         }
     }
 }

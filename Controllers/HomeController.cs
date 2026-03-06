@@ -2,6 +2,7 @@
 using FastLead.Models;
 using Microsoft.AspNetCore.Mvc;
 using ClosedXML.Excel;
+using FastLead.DTO;
 
 namespace FastLead.Controllers
 {
@@ -20,7 +21,7 @@ namespace FastLead.Controllers
         [HttpPost("/[controller]/getAccounts")]
         public async Task<IActionResult> GetAccounts()
         {
-            List<Account> accounts = await _accountRepository.GetAllAsync();
+            List<AccountDto> accounts = await _accountRepository.GetAllDtoAsync();
             return Ok(accounts);
         }
 
@@ -82,7 +83,7 @@ namespace FastLead.Controllers
         [HttpGet]
         public async Task<IActionResult> GetFilters(string field, string value)
         {
-            List<Guid> res = await _accountRepository.GetFiltersAsync(field, value);
+            List<AccountDto> res = await _accountRepository.GetFiltersAsync(field, value);
             return Ok(res);
         }
     }
