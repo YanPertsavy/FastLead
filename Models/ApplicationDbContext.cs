@@ -1,15 +1,44 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Azure.Core;
+using DocumentFormat.OpenXml.Spreadsheet;
+using DocumentFormat.OpenXml.Vml.Office;
+using FastLead.Interfaces;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.EntityFrameworkCore;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace FastLead.Models
 {
     public class ApplicationDbContext : DbContext
     {
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, IHttpContextAccessor httpContextAccessor)
             : base(options)
         {
             Database.EnsureCreated();
+            _httpContextAccessor = httpContextAccessor;
         }
+        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            var entities = ChangeTracker.Entries()
+                .Where(e => (e is IAuditable) || (e.State == EntityState.Modified || e.State == EntityState.Added));
+            var token = await _httpContextAccessor.HttpContext.GetTokenAsync("access_token");
+            var handler = new JwtSecurityTokenHandler();
+            var jwtSecurityToken = handler.ReadJwtToken(token);
+            var name = jwtSecurityToken.Claims.First(claim => claim.Type == "unique_name").Value ?? "System";
+                foreach (var entity in entities)
+                {
+                var audit = (IAuditable)entity.Entity;
 
+                    audit.ModifiedBy = name;
+                    audit.ModifiedOn = DateTime.UtcNow;
+                    if (entity.State == EntityState.Added)
+                    {
+                        audit.CreatedBy = name;
+                        audit.CreatedOn = DateTime.UtcNow;
+                    }
+                }
+            return await base.SaveChangesAsync(cancellationToken);
+        }
         public DbSet<User> Users { get; set; }
         public DbSet<Account> Accounts { get; set; }
     }

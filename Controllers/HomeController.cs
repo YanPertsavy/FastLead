@@ -1,11 +1,13 @@
-﻿using FastLead.Interfaces;
-using FastLead.Models;
-using Microsoft.AspNetCore.Mvc;
-using ClosedXML.Excel;
+﻿using ClosedXML.Excel;
 using FastLead.DTO;
+using FastLead.Interfaces;
+using FastLead.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace FastLead.Controllers
 {
+    [Authorize]
     public class HomeController : Controller
     {
         private readonly IAccountRepository _accountRepository;
@@ -63,14 +65,13 @@ namespace FastLead.Controllers
                 var worksheet = workbook.Worksheets.Add("Контрагенты");
 
                 worksheet.Cell(1, 1).InsertTable(accs);
-                worksheet.Columns().AdjustToContents(); // Автоширина колонок
+                worksheet.Columns().AdjustToContents();
 
                 using (var stream = new MemoryStream())
                 {
                     workbook.SaveAs(stream);
                     var content = stream.ToArray();
 
-                    // Возвращаем файл: массив байтов, тип контента и имя файла
                     return File(
                         content,
                         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -85,6 +86,13 @@ namespace FastLead.Controllers
         {
             List<AccountDto> res = await _accountRepository.GetFiltersAsync(field, value);
             return Ok(res);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> AddAccount([FromBody] Account account)
+        {
+            _accountRepository.CreateAsync(account);
+            return Ok();
         }
     }
 }

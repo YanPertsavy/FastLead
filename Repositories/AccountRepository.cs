@@ -75,7 +75,6 @@ namespace FastLead.Repositories
                     "Owner" => query.Where(a => a.Owner.Contains(value)),
                     "Phone" => query.Where(a => a.Phone.Contains(value)),
                     "Address" => query.Where(a => a.Address.Contains(value)),
-                    // Для Enum лучше использовать точное совпадение или парсинг
                     "Type" => Enum.TryParse<AccountType>(value, true, out var typeResult)
                               ? query.Where(a => a.Type == typeResult)
                               : query,
@@ -83,7 +82,6 @@ namespace FastLead.Repositories
                 };
             }
 
-            // Вместо Select(a => a.Id) делаем проекцию в DTO
             return await query.Select(a => new AccountDto
             {
                 Id = a.Id,
@@ -97,7 +95,7 @@ namespace FastLead.Repositories
         public async Task<List<AccountDto>> GetAllDtoAsync()
         {
             return await _context.Accounts
-                .AsNoTracking() // Ускоряет чтение, так как данные только для отображения
+                .AsNoTracking()
                 .Select(a => new AccountDto
                 {
                     Id = a.Id,

@@ -54,7 +54,7 @@
                 <li><a class="dropdown-item" href="javascript:void(0)" onclick="exportToExcel()"><i class="bi bi-file-earmark-excel me-2"></i>Экспорт в Excel</a></li>
                 <li><a class="dropdown-item" href="javascript:void(0)" onclick="canselSelection()"><i class="bi bi-x-lg me-2"></i>Отменить выбор</a></li>
                 <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item text-danger" href="javascript:void(0)" onclick="bulkDelete()"><i class="bi bi-trash me-2"></i>Удалить выбранные</a></li>
+                <li><a class="dropdown-item text-danger" href="javascript:void(0)" onclick="bulkDelete()" data-role="Admin"><i class="bi bi-trash me-2"></i>Удалить выбранные</a></li>
             </ul>
         </div>
     </div>
@@ -143,11 +143,115 @@
         </form>
     </div>
 </div>
+
+<div class="modal fade" id="addAccountModal" tabindex="-1" aria-labelledby="addAccountModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="addAccountModalLabel">
+                    <i class="bi bi-person-plus me-2"></i>Новый контрагент
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="addAccountForm">
+                    <div class="mb-3">
+                        <label for="accName" class="form-label fw-bold">Название компании <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="accName" placeholder="ООО 'Вектор'" required>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="accINN" class="form-label fw-bold">ИНН</label>
+                            <input type="text" class="form-control" id="accINN" placeholder="10 или 12 цифр">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="accType" class="form-label fw-bold">Тип</label>
+                            <select class="form-select" id="accType">
+                                <option value="0" selected>Клиент</option>
+                                <option value="1">Партнер</option>
+                                <option value="2">Поставщик</option>
+                                <option value="3">Конкурент</option>
+                                <option value="4">Перспективный</option>
+                                <option value="5">Другое</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="accEmail" class="form-label fw-bold">Email</label>
+                            <input type="email" class="form-control" id="accEmail" placeholder="example@mail.com">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="accPhone" class="form-label fw-bold">Телефон</label>
+                            <input type="tel" class="form-control" id="accPhone" placeholder="+7 (___) ___-__-__">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="accOwner" class="form-label fw-bold">Ответственный менеджер</label>
+                        <input type="text" class="form-control" id="accOwner" placeholder="Иванов И.И.">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="accAddress" class="form-label fw-bold">Юридический адрес</label>
+                        <textarea class="form-control" id="accAddress" rows="2" placeholder="г. Москва, ул. Ленина, д. 1"></textarea>
+                    </div>
+
+                    <div class="text-end mt-4">
+                        <button type="button" class="btn btn-light me-2" data-bs-dismiss="modal">Отмена</button>
+                        <button type="submit" class="btn btn-primary px-4">Создать контрагента</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 <script>
         document.addEventListener("DOMContentLoaded", () => 
         {
             loadAccounts();
+            setUserRole();
         });
+
+        async function setUserRole() {
+            const token = localStorage.getItem("jwt_token");
+            console.log(token)
+            if (!token) {
+                console.warn("Токен не найден");
+                return null;
+            }
+            const decoded = parseJwt(token);
+            const role = decoded.role;
+            console.log(role);
+            const protectedElements = document.querySelectorAll('[data-role]');
+            console.log(protectedElements)
+            protectedElements.forEach(el => {
+                const allowedRoles = el.getAttribute('data-role').split(',');
+                if (allowedRoles.includes(role)) {
+                  el.style.display = ""; // Показываем, если роль совпадает
+                } 
+                else 
+                {
+                    el.remove(); // Или el.style.display = "none", но remove безопаснее для верстки
+                }
+             });
+        }
+
+            function parseJwt(token) {
+                try {
+                    const base64Url = token.split('.')[1];
+                    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                    const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+                        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join(''));
+
+                return JSON.parse(jsonPayload);
+                } catch (e) {
+                    return null;
+                }
+            }
 
             async function loadAccounts() {
             const response = await fetch("/Home/getAccounts", {
@@ -162,47 +266,56 @@
     }
 
 
-    async function insertTable(json)
-    {
+        async function insertTable(json) {
         const tbody = document.getElementById("accountsTableBody");
+        if (!tbody) return;
 
         tbody.innerHTML = "";
 
+        const token = localStorage.getItem("jwt_token");
+        const decoded = parseJwt(token);
+        const userRole = decoded ? decoded.role : null;
+
         json.forEach(acc => {
             const firstLetter = acc.name ? acc.name.charAt(0).toUpperCase() : "?";
-
             const typeInfo = getAccountTypeInfo(acc.type);
 
+            const deleteButtonHtml = (userRole === "Admin")
+                ? `<button class="btn btn-outline-danger btn-sm border-0" onclick="deleteAccount('${acc.id}')" title="Удалить">
+                       <i class="bi bi-trash3"></i>
+                   </button>`
+                : "";
+            const edidCard = (userRole === "Moderator" || userRole === "Admin") ? `<a href="javascript:void(0)" onclick="openEditCard('${acc.id}')" class="text-decoration-none fw-bold text-primary d-block">
+                                    ${acc.name}
+                                </a>` : `<a  class="text-decoration-none fw-bold text-primary d-block">
+                                    ${acc.name}
+                                </a>`;
             const row = `
                 <tr id="row-${acc.id}">
-                <td class="ps-4">
-                    <input type="checkbox" class="form-check-input account-checkbox" value="${acc.id}">
-                </td>
-                <td>
-                    <div class="d-flex align-items-center">
-                        <div class="company-icon bg-primary text-white me-3">
-                             ${firstLetter}
+                    <td class="ps-4">
+                        <input type="checkbox" class="form-check-input account-checkbox" value="${acc.id}">
+                    </td>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <div class="company-icon bg-primary text-white me-3">
+                                 ${firstLetter}
+                            </div>
+                            <div>
+                                ${edidCard}
+                                <small class="text-muted" style="font-size: 0.75rem;">ИНН: ${acc.inn || '—'}</small>
+                            </div>
                         </div>
-                        <div>
-                            <a href="javascript:void(0)" onclick="openEditCard('${acc.id}')" class="text-decoration-none fw-bold text-primary d-block">
-                                ${acc.name}
-                            </a>
-                            <small class="text-muted" style="font-size: 0.75rem;">ИНН: ${acc.inn || '—'}</small>
-                        </div>
-                    </div>
-                </td>
-                <td>
-                    <span class="badge-custom ${typeInfo.class}">${typeInfo.text}</span>
-                </td>
-                <td>
-                    <div class="text-secondary small">${acc.address || '—'}</div>
-                </td>
-                <td class="text-end pe-4">
-                    <button class="btn btn-outline-danger btn-sm border-0" onclick="deleteAccount('${acc.id}')" title="Удалить">
-                        <i class="bi bi-trash3"></i>
-                    </button>
-                </td>
-            </tr>
+                    </td>
+                    <td>
+                        <span class="badge-custom ${typeInfo.class}">${typeInfo.text}</span>
+                    </td>
+                    <td>
+                        <div class="text-secondary small">${acc.address || '—'}</div>
+                    </td>
+                    <td class="text-end pe-4">
+                        ${deleteButtonHtml}
+                    </td>
+                </tr>
             `;
 
             tbody.insertAdjacentHTML('beforeend', row);
@@ -404,7 +517,43 @@
         insertTable(json);
     }
 
-    // Вспомогательная функция для маппинга Enum
+        function openCreateModal() {
+
+        const form = document.getElementById('addAccountForm');
+        if (form) form.reset();
+
+
+        const modalElement = document.getElementById('addAccountModal');
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
+    }
+
+        document.getElementById('addAccountForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        const data = {
+            name: document.getElementById('accName').value,
+            inn: document.getElementById('accINN').value,
+            type: parseInt(document.getElementById('accType').value),
+            email: document.getElementById('accEmail').value,
+            phone: document.getElementById('accPhone').value,
+            owner: document.getElementById('accOwner').value,
+            address: document.getElementById('accAddress').value
+        };
+
+            const response = await fetch('/Home/AddAccount', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if (response.ok) {
+                bootstrap.Modal.getInstance(document.getElementById('addAccountModal')).hide();
+                this.reset();
+                await loadAccounts();
+            }
+    });
+
         function getAccountTypeInfo(type) {
         switch (type) {
             case 0: // Client
