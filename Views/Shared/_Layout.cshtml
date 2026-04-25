@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="utf-8" />
@@ -12,7 +12,6 @@
         :root { --sidebar-width: 240px; --crm-bg: #f4f7f9; --active-color: #f39c12; }
         body { background-color: var(--crm-bg); overflow-x: hidden; }
 
-        /* Боковая панель */
         .sidebar {
             width: var(--sidebar-width);
             height: 100vh;
@@ -26,10 +25,8 @@
             background: #34495e; color: white; border-left: 4px solid var(--active-color);
         }
 
-        /* Контентная часть */
         .main-wrapper { margin-left: var(--sidebar-width); width: calc(100% - var(--sidebar-width)); }
 
-        /* Верхняя панель */
         .crm-header {
             height: 60px;
             background: white;
@@ -41,7 +38,6 @@
             position: sticky; top: 0; z-index: 1000;
         }
 
-        /* Кружочек пользователя */
         .user-avatar {
             width: 40px; height: 40px;
             background: #3498db;
@@ -51,7 +47,6 @@
             cursor: pointer; position: relative;
         }
 
-        /* Плашка выхода (Dropdown) */
         .user-menu {
             position: absolute; top: 50px; right: 0;
             background: white; border: 1px solid #dee2e6;
@@ -68,9 +63,9 @@
     <div class="sidebar">
         <div class="p-4 text-center"><h4>FastLead</h4></div>
         <nav class="nav flex-column">
-            <a class="nav-link active" href="#"><i class="bi bi-speedometer2 me-2"></i> Контрагенты</a>
-            <a class="nav-link" href="#"><i class="bi bi-people me-2"></i> Контакты</a>
-            <a class="nav-link" href="#"><i class="bi bi-briefcase me-2"></i> Сделки</a>
+            <a class="nav-link @(ViewData["Title"]?.ToString() == "Контрагенты" ? "active" : "")" href="/Home/Accounts"><i class="bi bi-speedometer2 me-2"></i> Контрагенты</a>
+            <a class="nav-link @(ViewData["Title"]?.ToString() == "Лиды" ? "active" : "")" href="/Lead/Leads"><i class="bi bi-funnel me-2"></i> Лиды</a>
+            <a class="nav-link @(ViewData["Title"]?.ToString() == "Инфо" ? "active" : "")" href="/Dashboard/Info"><i class="bi bi-speedometer2 me-2"></i> Инфо</a>
             <a class="nav-link" href="#"><i class="bi bi-calendar-event me-2"></i> Активности</a>
         </nav>
     </div>
@@ -101,7 +96,6 @@
             document.getElementById('userMenu').classList.toggle('show');
         }
 
-        // Закрытие меню при клике вне его
         window.onclick = function(event) {
             if (!event.target.closest('.user-avatar')) {
                 document.getElementById('userMenu').classList.remove('show');

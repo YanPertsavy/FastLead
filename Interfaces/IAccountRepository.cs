@@ -15,5 +15,6 @@ namespace FastLead.Interfaces
         Task<List<Account>> GetRangeAsync(List<Guid> ids);
         Task<List<AccountDto>> GetFiltersAsync(string field, string value);
         Task<List<AccountDto>> GetAllDtoAsync();
+        Task<DashboardDTO> GetDashboardDTOAsync();
     }
 }

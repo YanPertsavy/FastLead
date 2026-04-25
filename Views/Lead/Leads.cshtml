@@ -1,0 +1,863 @@
+@{
+    ViewData["Title"] = "Лиды";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="h4 mb-1 text-dark fw-bold">Лиды</h2>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb small mb-0">
+                <li class="breadcrumb-item"><a href="/" class="text-decoration-none text-muted">Главная</a></li>
+                <li class="breadcrumb-item active text-secondary">Все лиды</li>
+            </ol>
+        </nav>
+    </div>
+
+    <div class="d-flex gap-2">
+        <div class="dropdown">
+            <button class="btn btn-outline-secondary shadow-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+                <i class="bi bi-filter me-2"></i> Фильтры
+            </button>
+            <div class="dropdown-menu dropdown-menu-end border-0 p-3 shadow-lg" style="width: 300px;">
+                <h6 class="mb-3 fw-bold">Фильтрация</h6>
+                <div class="mb-2">
+                    <label class="form-label small fw-bold text-muted">Поле поиска</label>
+                    <select class="form-select form-select-sm" id="filterColumn">
+                        <option value="Name">Name</option>
+                        <option value="Company">Company</option>
+                        <option value="Email">Email</option>
+                        <option value="Owner">Owner</option>
+                        <option value="Phone">Phone</option>
+                        <option value="Address">Address</option>
+                        <option value="Status">Status</option>
+                    </select>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small">Значение</label>
+                    <input type="text" class="form-control form-control-sm" id="filterName">
+                </div>
+                <hr class="my-3">
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary btn-sm w-100" onclick="getFilters()">Применить</button>
+                    <button class="btn btn-light btn-sm w-100 border" onclick="loadLeads()">Сброс</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="dropdown">
+            <button class="btn btn-success shadow-sm px-4 fw-bold dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                Действия
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+                <li><a class="dropdown-item" href="javascript:void(0)" onclick="openCreateModal()"><i class="bi bi-plus-lg me-2"></i>Добавить лид</a></li>
+                <li><a class="dropdown-item" href="javascript:void(0)" onclick="openApiModal()"><i class="bi bi-cloud me-2"></i>Импорт лидов</a></li>
+                <li><a class="dropdown-item" href="javascript:void(0)" onclick="exportToExcel()"><i class="bi bi-file-earmark-excel me-2"></i>Экспорт в Excel</a></li>
+                <li><a class="dropdown-item" href="javascript:void(0)" onclick="cancelSelection()"><i class="bi bi-x-lg me-2"></i>Отменить выбор</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item text-danger" href="javascript:void(0)" onclick="bulkDelete()" data-role="Admin"><i class="bi bi-trash me-2"></i>Удалить выбранные</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="table-responsive table-scroll-container">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="bg-light text-muted small">
+                <tr>
+                    <th class="ps-4" style="width: 40px;">
+                        <input type="checkbox" class="form-check-input" id="selectAll" onclick="toggleSelectAll(this)">
+                    </th>
+                    <th class="py-3">ИМЯ ЛИДА</th>
+                    <th>КОМПАНИЯ</th>
+                    <th>СТАТУС</th>
+                    <th class="text-end pe-4">ДЕЙСТВИЯ</th>
+                </tr>
+            </thead>
+            <tbody id="leadsTableBody">
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div id="editCard" class="card shadow-sm border-0 mt-4" style="display: none;">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center py-3 border-bottom">
+        <h5 class="mb-0 fw-bold text-primary"><i class="bi bi-pencil-square me-2"></i>Карточка: <span id="headerName">...</span></h5>
+        <div id="cardActions">
+            <button id="btnCancelClose" class="btn btn-light border btn-sm px-3" onclick="closeCard()">Закрыть</button>
+            <div id="unsavedActions" style="display: none;">
+                <button class="btn btn-success btn-sm px-3 me-1" onclick="saveChanges()">
+                    <i class="bi bi-check-lg"></i> Сохранить
+                </button>
+                <button class="btn btn-outline-secondary btn-sm px-3" onclick="revertToOriginal()">
+                    Отменить изменения
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <form id="editForm">
+            <input type="hidden" id="editId">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold text-muted">Имя лида</label>
+                        <input type="text" id="editName" class="form-control edit-field" placeholder="Введите имя">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold text-muted">Компания</label>
+                        <input type="text" id="editCompany" class="form-control edit-field" placeholder="Название компании">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold text-muted">Email</label>
+                        <input type="email" id="editEmail" class="form-control edit-field" placeholder="example@mail.com">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold text-muted">Телефон</label>
+                        <input type="text" id="editPhone" class="form-control edit-field" placeholder="+7 (___) ___ - __ - __">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold text-muted">Статус лида</label>
+                        <select id="editStatus" class="form-select edit-field">
+                            <option value="0">Новый</option>
+                            <option value="1">В работе</option>
+                            <option value="2">Квалифицирован</option>
+                            <option value="3">Отклонён</option>
+                            <option value="4">Конвертирован</option>
+                            <option value="5">Другое</option>
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold text-muted">Ответственный (Owner)</label>
+                        <input type="text" id="editOwner" class="form-control edit-field">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold text-muted">Адрес</label>
+                        <textarea id="editAddress" class="form-control edit-field" rows="4" placeholder="Полный адрес..."></textarea>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Модалка добавления лида -->
+<div class="modal fade" id="addLeadModal" tabindex="-1" aria-labelledby="addLeadModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="addLeadModalLabel">
+                    <i class="bi bi-person-plus me-2"></i>Новый лид
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="addLeadForm">
+                    <div class="mb-3">
+                        <label for="leadName" class="form-label fw-bold">Имя лида <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="leadName" placeholder="Иванов Иван" required>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="leadCompany" class="form-label fw-bold">Компания</label>
+                            <input type="text" class="form-control" id="leadCompany" placeholder="ООО 'Вектор'">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="leadStatus" class="form-label fw-bold">Статус</label>
+                            <select class="form-select" id="leadStatus">
+                                <option value="0" selected>Новый</option>
+                                <option value="1">В работе</option>
+                                <option value="2">Квалифицирован</option>
+                                <option value="3">Отклонён</option>
+                                <option value="4">Конвертирован</option>
+                                <option value="5">Другое</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="leadEmail" class="form-label fw-bold">Email</label>
+                            <input type="email" class="form-control" id="leadEmail" placeholder="example@mail.com">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="leadPhone" class="form-label fw-bold">Телефон</label>
+                            <input type="tel" class="form-control" id="leadPhone" placeholder="+7 (___) ___-__-__">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="leadOwner" class="form-label fw-bold">Ответственный менеджер</label>
+                        <input type="text" class="form-control" id="leadOwner" placeholder="Иванов И.И.">
+                    </div>
+                    <div class="mb-3">
+                        <label for="leadAddress" class="form-label fw-bold">Адрес</label>
+                        <textarea class="form-control" id="leadAddress" rows="2" placeholder="г. Москва, ул. Ленина, д. 1"></textarea>
+                    </div>
+                    <div class="text-end mt-4">
+                        <button type="button" class="btn btn-light me-2" data-bs-dismiss="modal">Отмена</button>
+                        <button type="submit" class="btn btn-primary px-4">Создать лид</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модалка импорта через API -->
+<div class="modal fade" id="apiImportModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-cloud-download me-2"></i>Импорт лидов через API
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body p-0" style="height: 70vh;">
+                <div class="d-flex h-100">
+
+                    <!-- ЛЕВАЯ ПАНЕЛЬ — JSON редактор -->
+                    <div class="d-flex flex-column border-end" style="width: 55%;">
+                        <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom bg-light">
+                            <span class="small fw-bold text-muted"><i class="bi bi-code-slash me-1"></i>JSON ответ</span>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-outline-secondary btn-sm" onclick="formatJson()" title="Форматировать">
+                                    <i class="bi bi-magic"></i>
+                                </button>
+                                <button class="btn btn-outline-danger btn-sm" onclick="clearJson()" title="Очистить">
+                                    <i class="bi bi-trash3"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <textarea id="jsonEditor"
+                                  class="flex-grow-1 p-3 border-0 font-monospace"
+                                  style="resize: none; outline: none; font-size: 0.8rem; background: #1e1e1e; color: #d4d4d4;"
+                                  placeholder="JSON появится здесь после запроса...&#10;&#10;Вы также можете вставить JSON вручную.">
+                        </textarea>
+                        <div class="px-3 py-2 border-top bg-light d-flex align-items-center justify-content-between">
+                            <span id="jsonStatus" class="small text-muted">Ожидание данных...</span>
+                            <button class="btn btn-success btn-sm px-4" onclick="importLeads()">
+                                <i class="bi bi-download me-1"></i> Импортировать в CRM
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- ПРАВАЯ ПАНЕЛЬ — настройки запроса -->
+                    <div class="d-flex flex-column" style="width: 45%;">
+                        <div class="px-3 py-2 border-bottom bg-light">
+                            <span class="small fw-bold text-muted"><i class="bi bi-sliders me-1"></i>Настройки запроса</span>
+                        </div>
+                        <div class="p-3 overflow-auto flex-grow-1">
+
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-muted">Метод и URL</label>
+                                <div class="d-flex gap-2">
+                                    <select class="form-select form-select-sm" id="requestMethod" style="width: 90px; flex-shrink: 0;">
+                                        <option value="GET" selected>GET</option>
+                                        <option value="POST">POST</option>
+                                    </select>
+                                    <input type="text"
+                                           class="form-control form-control-sm"
+                                           id="apiUrl"
+                                           placeholder="https://randomuser.me/api/?results=10">
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-muted">Заголовки (Headers)</label>
+                                <div id="headersContainer"></div>
+                                <button class="btn btn-outline-secondary btn-sm mt-1 w-100" onclick="addHeader()">
+                                    <i class="bi bi-plus me-1"></i>Добавить заголовок
+                                </button>
+                            </div>
+
+                            <div class="mb-3" id="bodySection" style="display: none;">
+                                <label class="form-label small fw-bold text-muted">Body (для POST)</label>
+                                <textarea id="requestBody"
+                                          class="form-control form-control-sm font-monospace"
+                                          rows="4"
+                                          placeholder='{"key": "value"}'
+                                          style="font-size: 0.78rem;">
+                                </textarea>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-muted">Маппинг полей</label>
+                                <div class="bg-light rounded p-2 small text-muted mb-2">
+                                    Укажи путь к массиву и сопоставь поля JSON с полями лида
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small text-muted">Путь к массиву <span class="text-muted fw-normal">(например: <code>results</code>)</span></label>
+                                    <input type="text" class="form-control form-control-sm" id="arrayPath" placeholder="results">
+                                </div>
+                                <div class="d-flex gap-1 small fw-bold text-muted mb-1 px-1">
+                                    <span style="width: 50%;">Поле в JSON</span>
+                                    <span style="width: 50%;">Поле лида</span>
+                                </div>
+                                <div id="mappingContainer"></div>
+                                <button class="btn btn-outline-secondary btn-sm mt-1 w-100" onclick="addMapping()">
+                                    <i class="bi bi-plus me-1"></i>Добавить маппинг
+                                </button>
+                            </div>
+
+                        </div>
+                        <div class="p-3 border-top">
+                            <button class="btn btn-primary w-100" onclick="fetchApi()">
+                                <i class="bi bi-send me-2"></i>Отправить запрос
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        loadLeads();
+        setUserRole();
+
+        document.getElementById('requestMethod').addEventListener('change', function () {
+            document.getElementById('bodySection').style.display = this.value === 'POST' ? 'block' : 'none';
+        });
+    });
+
+    // ===================== РОЛИ =====================
+
+    async function setUserRole() {
+        const token = localStorage.getItem("jwt_token");
+        if (!token) return;
+        const decoded = parseJwt(token);
+        const role = decoded.role;
+        const protectedElements = document.querySelectorAll('[data-role]');
+        protectedElements.forEach(el => {
+            const allowedRoles = el.getAttribute('data-role').split(',');
+            if (allowedRoles.includes(role)) {
+                el.style.display = "";
+            } else {
+                el.remove();
+            }
+        });
+    }
+
+    function parseJwt(token) {
+        try {
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+            return JSON.parse(jsonPayload);
+        } catch (e) {
+            return null;
+        }
+    }
+
+    // ===================== ТАБЛИЦА =====================
+
+    async function loadLeads() {
+        const response = await fetch("/Lead/getLeads", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        const json = await response.json();
+        insertTable(json);
+    }
+
+    async function insertTable(json) {
+        const tbody = document.getElementById("leadsTableBody");
+        if (!tbody) return;
+        tbody.innerHTML = "";
+
+        const token = localStorage.getItem("jwt_token");
+        const decoded = parseJwt(token);
+        const userRole = decoded ? decoded.role : null;
+
+        json.forEach(lead => {
+            const firstLetter = lead.name ? lead.name.charAt(0).toUpperCase() : "?";
+            const statusInfo = getLeadStatusInfo(lead.status);
+
+            const deleteButtonHtml = (userRole === "Admin")
+                ? `<button class="btn btn-outline-danger btn-sm border-0" onclick="deleteLead('${lead.id}')" title="Удалить">
+                       <i class="bi bi-trash3"></i>
+                   </button>`
+                : "";
+
+            const editCard = (userRole === "Moderator" || userRole === "Admin")
+                ? `<a href="javascript:void(0)" onclick="openEditCard('${lead.id}')" class="text-decoration-none fw-bold text-primary d-block">${lead.name}</a>`
+                : `<a class="text-decoration-none fw-bold text-primary d-block">${lead.name}</a>`;
+
+            const row = `
+                <tr id="row-${lead.id}">
+                    <td class="ps-4">
+                        <input type="checkbox" class="form-check-input lead-checkbox" value="${lead.id}">
+                    </td>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <div class="company-icon bg-primary text-white me-3">${firstLetter}</div>
+                            <div>
+                                ${editCard}
+                                <small class="text-muted" style="font-size: 0.75rem;">Телефон: ${lead.phone || '—'}</small>
+                            </div>
+                        </div>
+                    </td>
+                    <td><div class="text-secondary small">${lead.company || '—'}</div></td>
+                    <td><span class="badge-custom ${statusInfo.class}">${statusInfo.text}</span></td>
+                    <td class="text-end pe-4">${deleteButtonHtml}</td>
+                </tr>
+            `;
+            tbody.insertAdjacentHTML('beforeend', row);
+        });
+    }
+
+    // ===================== КАРТОЧКА РЕДАКТИРОВАНИЯ =====================
+
+    let leadBackup = {};
+
+    async function deleteLead(id) {
+        const response = await fetch(`/Lead/delete/${id}`, { method: "DELETE" });
+        if (response.ok) document.getElementById(`row-${id}`).remove();
+    }
+
+    async function openEditCard(id) {
+        const response = await fetch(`/Lead/details/${id}`);
+        const lead = await response.json();
+        leadBackup = JSON.parse(JSON.stringify(lead));
+
+        document.getElementById("editId").value = lead.id;
+        document.getElementById("editName").value = lead.name || "";
+        document.getElementById("headerName").innerText = lead.name || "Без имени";
+        document.getElementById("editCompany").value = lead.company || "";
+        document.getElementById("editEmail").value = lead.email || "";
+        document.getElementById("editPhone").value = lead.phone || "";
+        document.getElementById("editOwner").value = lead.owner || "";
+        document.getElementById("editAddress").value = lead.address || "";
+        document.getElementById("editStatus").value = lead.status;
+
+        document.getElementById("editCard").style.display = "block";
+        showUnsavedActions(false);
+        document.getElementById("editCard").scrollIntoView({ behavior: 'smooth' });
+    }
+
+    document.querySelectorAll('.edit-field').forEach(input => {
+        input.addEventListener('input', () => showUnsavedActions(checkAnyChanges()));
+    });
+
+    function checkAnyChanges() {
+        return document.getElementById("editName").value    !== (leadBackup.name    || "") ||
+               document.getElementById("editCompany").value !== (leadBackup.company || "") ||
+               document.getElementById("editEmail").value   !== (leadBackup.email   || "") ||
+               document.getElementById("editPhone").value   !== (leadBackup.phone   || "") ||
+               document.getElementById("editOwner").value   !== (leadBackup.owner   || "") ||
+               document.getElementById("editAddress").value !== (leadBackup.address || "") ||
+               parseInt(document.getElementById("editStatus").value) !== leadBackup.status;
+    }
+
+    function showUnsavedActions(visible) {
+        document.getElementById("btnCancelClose").style.display = visible ? "none" : "inline-block";
+        document.getElementById("unsavedActions").style.display = visible ? "inline-block" : "none";
+    }
+
+    function revertToOriginal() { openEditCard(leadBackup.id); }
+    function closeCard() { document.getElementById("editCard").style.display = "none"; }
+
+    async function saveChanges() {
+        const updated = {
+            Id:      document.getElementById("editId").value,
+            Name:    document.getElementById("editName").value,
+            Company: document.getElementById("editCompany").value,
+            Email:   document.getElementById("editEmail").value,
+            Phone:   document.getElementById("editPhone").value,
+            Owner:   document.getElementById("editOwner").value,
+            Address: document.getElementById("editAddress").value,
+            Status:  parseInt(document.getElementById("editStatus").value)
+        };
+        const res = await fetch('/Lead/updateLead', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updated)
+        });
+        if (res.ok) { loadLeads(); showUnsavedActions(false); closeCard(); }
+    }
+
+    // ===================== ВЫБОР / УДАЛЕНИЕ / ЭКСПОРТ =====================
+
+    function toggleSelectAll(masterSelect) {
+        document.getElementById("leadsTableBody")
+            .querySelectorAll('input[type="checkbox"]')
+            .forEach(cb => cb.checked = masterSelect.checked);
+    }
+
+    function cancelSelection() {
+        document.getElementById("leadsTableBody")
+            .querySelectorAll('input[type="checkbox"]')
+            .forEach(cb => cb.checked = false);
+        const selectAll = document.getElementById("selectAll");
+        if (selectAll) selectAll.checked = false;
+    }
+
+    function getCheckedIds() {
+        return Array.from(
+            document.getElementById("leadsTableBody").querySelectorAll('input[type="checkbox"]')
+        ).reduce((acc, cb) => { if (cb.checked) acc.push(cb.value); return acc; }, []);
+    }
+
+    async function bulkDelete() {
+        const ids = getCheckedIds();
+        const response = await fetch("/Lead/bulkDelete", {
+            method: "DELETE",
+            body: JSON.stringify(ids),
+            headers: { 'Content-Type': 'application/json' }
+        });
+        if (response.ok) ids.forEach(id => { const r = document.getElementById(`row-${id}`); if (r) r.remove(); });
+    }
+
+    async function exportToExcel() {
+        const ids = getCheckedIds();
+        const response = await fetch("/Lead/getExcel", {
+            method: "POST",
+            body: JSON.stringify(ids),
+            headers: { 'Content-Type': 'application/json' }
+        });
+        if (response.ok) {
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = "Лиды.xlsx";
+            document.body.appendChild(a); a.click();
+            window.URL.revokeObjectURL(url); a.remove();
+        }
+    }
+
+    // ===================== ФИЛЬТРЫ =====================
+
+    async function getFilters() {
+        const params = new URLSearchParams({
+            field: document.getElementById("filterColumn").value,
+            value: document.getElementById("filterName").value
+        });
+        const response = await fetch(`/Lead/GetFilters?${params.toString()}`);
+        insertTable(await response.json());
+    }
+
+    // ===================== МОДАЛКА ДОБАВЛЕНИЯ =====================
+
+    function openCreateModal() {
+        const form = document.getElementById('addLeadForm');
+        if (form) form.reset();
+        new bootstrap.Modal(document.getElementById('addLeadModal')).show();
+    }
+
+    document.getElementById('addLeadForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const data = {
+            name:    document.getElementById('leadName').value,
+            company: document.getElementById('leadCompany').value,
+            status:  parseInt(document.getElementById('leadStatus').value),
+            email:   document.getElementById('leadEmail').value,
+            phone:   document.getElementById('leadPhone').value,
+            owner:   document.getElementById('leadOwner').value,
+            address: document.getElementById('leadAddress').value
+        };
+        const response = await fetch('/Lead/AddLead', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        if (response.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('addLeadModal')).hide();
+            this.reset();
+            await loadLeads();
+        }
+    });
+
+
+    function openApiModal() {
+        new bootstrap.Modal(document.getElementById('apiImportModal')).show();
+    }
+
+    function addHeader() {
+        const container = document.getElementById('headersContainer');
+        const row = document.createElement('div');
+        row.className = 'd-flex gap-2 mb-2 header-row';
+        row.innerHTML = `
+            <input type="text" class="form-control form-control-sm" placeholder="Authorization">
+            <input type="text" class="form-control form-control-sm" placeholder="Bearer token...">
+            <button class="btn btn-outline-danger btn-sm" onclick="removeHeader(this)">
+                <i class="bi bi-x"></i>
+            </button>
+        `;
+        container.appendChild(row);
+    }
+
+    function removeHeader(btn) {
+        btn.closest('.header-row').remove();
+    }
+
+    function addMapping() {
+        const container = document.getElementById('mappingContainer');
+        const row = document.createElement('div');
+        row.className = 'd-flex gap-2 mb-2 mapping-row';
+        row.innerHTML = `
+            <input type="text" class="form-control form-control-sm" placeholder="name.first">
+            <select class="form-select form-select-sm">
+                <option value="">— не маппить —</option>
+                <option value="name">Name</option>
+                <option value="email">Email</option>
+                <option value="phone">Phone</option>
+                <option value="company">Company</option>
+                <option value="owner">Owner</option>
+                <option value="address">Address</option>
+            </select>
+            <button class="btn btn-outline-danger btn-sm" onclick="removeMapping(this)">
+                <i class="bi bi-x"></i>
+            </button>
+        `;
+        container.appendChild(row);
+    }
+
+    function removeMapping(btn) {
+        btn.closest('.mapping-row').remove();
+    }
+
+    function formatJson() {
+        const editor = document.getElementById('jsonEditor');
+        try {
+            const parsed = JSON.parse(editor.value);
+            editor.value = JSON.stringify(parsed, null, 2);
+            setJsonStatus('success', 'JSON валиден');
+        } catch (e) {
+            setJsonStatus('error', 'Ошибка: невалидный JSON');
+        }
+    }
+
+    function clearJson() {
+        document.getElementById('jsonEditor').value = '';
+        setJsonStatus('muted', 'Ожидание данных...');
+    }
+
+    function setJsonStatus(type, message) {
+        const el = document.getElementById('jsonStatus');
+        el.className = `small text-${type}`;
+        el.textContent = message;
+    }
+
+        function getHeaders() {
+        const headers = {};
+        const rows = document.querySelectorAll('#headersContainer .header-row');
+        rows.forEach(row => {
+            const inputs = row.querySelectorAll('input');
+            const key   = inputs[0].value.trim();
+            const value = inputs[1].value.trim();
+            if (key) headers[key] = value;
+        });
+        return headers;
+    }
+
+
+    async function fetchApi() {
+        const method = document.getElementById('requestMethod').value;
+        const url = document.getElementById('apiUrl').value;
+        const headers = getHeaders();
+        const body = document.getElementById('requestBody').value;
+
+        const options = {
+        method: method,
+        headers: headers
+        };
+
+        if (method === 'POST' && body) {
+           options.body = body;
+        }
+
+        const response = await fetch(url,options)
+
+        const json = await response.json();
+        const jsonEditor = document.getElementById('jsonEditor');
+        jsonEditor.value = JSON.stringify(json, null, 2);
+        setJsonStatus("sucess", "Записи получены");
+    }
+
+    async function importLeads() {
+        const jsonRaw = document.getElementById("jsonEditor").value;
+        const arrayPath = document.getElementById("arrayPath").value.trim();
+
+        let json;
+        try {
+            json = JSON.parse(jsonRaw);
+        } catch (e) {
+            setJsonStatus('danger', 'Ошибка: невалидный JSON');
+            return;
+        }
+
+        const array = getArrayByPath(json, arrayPath);
+        if (!array || !Array.isArray(array)) {
+            setJsonStatus('danger', 'Ошибка: по указанному пути массив не найден');
+            return;
+        }
+
+        const mappingRows = document.querySelectorAll('#mappingContainer .mapping-row');
+        const mapping = [];
+        mappingRows.forEach(row => {
+            const jsonField  = row.querySelectorAll('input')[0].value.trim();
+            const leadField  = row.querySelector('select').value;
+            if (jsonField && leadField) {
+                mapping.push({ jsonField, leadField });
+            }
+        });
+
+        if (mapping.length === 0) {
+            setJsonStatus('danger', 'Ошибка: не задан ни один маппинг');
+            return;
+        }
+
+        let successCount = 0;
+        let errorCount = 0;
+
+        for (const item of array) {
+            const lead = {};
+
+            mapping.forEach(({ jsonField, leadField }) => {
+                const value = getArrayByPath(item, jsonField);
+                if (value !== null && value !== undefined) {
+                    lead[leadField] = typeof value === 'object'
+                        ? JSON.stringify(value)
+                        : String(value);
+                }
+            });
+
+            try {
+                const response = await fetch('/Lead/AddLead', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(lead)
+                });
+                response.ok ? successCount++ : errorCount++;
+            } catch {
+                errorCount++;
+            }
+        }
+
+        if (errorCount === 0) {
+            setJsonStatus('success', `Импортировано: ${successCount} лидов`);
+            await loadLeads();
+        } else {
+            setJsonStatus('warning', `Импортировано: ${successCount}, ошибок: ${errorCount}`);
+        }
+    }
+
+
+    function getLeadStatusInfo(status) {
+        switch (status) {
+            case 0: return { text: "Новый",         class: "bg-blue"   };
+            case 1: return { text: "В работе",       class: "bg-orange" };
+            case 2: return { text: "Квалифицирован", class: "bg-green"  };
+            case 3: return { text: "Отклонён",       class: "bg-red"    };
+            case 4: return { text: "Конвертирован",  class: "bg-purple" };
+            case 5: return { text: "Другое",         class: "bg-light text-dark" };
+            default: return { text: "Не указан",     class: "bg-light text-dark" };
+        }
+    }
+
+        function getArrayByPath(json, path) {
+        if (!path || path.trim() === '') return json;
+
+        return path.split('.').reduce((obj, key) => {
+            return obj && obj[key] !== undefined ? obj[key] : null;
+        }, json);
+    }
+</script>
+
+<style>
+    .company-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 0.9rem;
+    }
+
+    .badge-custom {
+        padding: 4px 10px;
+        border-radius: 50px;
+        font-size: 0.7rem;
+        font-weight: 600;
+    }
+
+    .bg-blue {
+        background-color: #eef6ff;
+        color: #007bff;
+    }
+
+    .bg-orange {
+        background-color: #fff4e5;
+        color: #ff9800;
+    }
+
+    .bg-green {
+        background-color: #e8fadf;
+        color: #28a745;
+    }
+
+    .bg-red {
+        background-color: #ffeef0;
+        color: #dc3545;
+    }
+
+    .bg-purple {
+        background-color: #f3efff;
+        color: #6f42c1;
+    }
+
+    .dropdown-menu {
+        border-radius: 12px;
+        margin-top: 10px !important;
+    }
+
+    .form-label {
+        margin-bottom: 4px;
+    }
+
+    .table-hover tbody tr:hover {
+        background-color: #f8fbff;
+    }
+
+    .table-scroll-container {
+        max-height: 65vh;
+        overflow-y: auto;
+    }
+
+    .table thead th {
+        position: sticky;
+        top: 0;
+        background-color: #f8f9fa !important;
+        z-index: 10;
+        box-shadow: inset 0 -1px 0 #dee2e6;
+    }
+
+    #jsonEditor::placeholder {
+        color: #555;
+    }
+
+    #jsonEditor::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    #jsonEditor::-webkit-scrollbar-track {
+        background: #1e1e1e;
+    }
+
+    #jsonEditor::-webkit-scrollbar-thumb {
+        background: #444;
+        border-radius: 3px;
+    }
+</style>

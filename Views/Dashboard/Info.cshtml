@@ -1,0 +1,178 @@
+﻿@{
+    ViewData["Title"] = "Дашборд";
+}
+
+<style>
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        border-left: 4px solid;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .stat-card.leads   { border-color: #3498db; }
+    .stat-card.accounts { border-color: #f39c12; }
+    .stat-card .stat-value { font-size: 2rem; font-weight: 700; color: #2c3e50; }
+    .stat-card .stat-label { color: #7f8c8d; font-size: 0.875rem; margin-top: 4px; }
+    .stat-card .stat-icon  { font-size: 2rem; opacity: 0.15; }
+
+    .chart-card {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .chart-card h6 {
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 20px;
+        font-size: 0.95rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .loading-overlay {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 200px;
+        color: #bdc3c7;
+    }
+</style>
+
+<div class="d-flex align-items-center mb-4">
+    <h4 class="mb-0 fw-bold text-dark">Дашборд</h4>
+    <span class="text-muted ms-3 small">Общая статистика системы</span>
+</div>
+
+<!-- Карточки с общими цифрами -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="stat-card leads d-flex justify-content-between align-items-center">
+            <div>
+                <div class="stat-value" id="totalLeads">—</div>
+                <div class="stat-label">Всего лидов</div>
+            </div>
+            <i class="bi bi-funnel stat-icon"></i>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card accounts d-flex justify-content-between align-items-center">
+            <div>
+                <div class="stat-value" id="totalAccounts">—</div>
+                <div class="stat-label">Всего контрагентов</div>
+            </div>
+            <i class="bi bi-building stat-icon"></i>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card" style="border-color:#2ecc71;">
+            <div>
+                <div class="stat-value" id="qualifiedLeads">—</div>
+                <div class="stat-label">Квалифицировано</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card" style="border-color:#e74c3c;">
+            <div>
+                <div class="stat-value" id="rejectedLeads">—</div>
+                <div class="stat-label">Отклонено</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Графики -->
+<div class="row g-3">
+    <div class="col-md-6">
+        <div class="chart-card">
+            <h6><i class="bi bi-funnel me-2 text-primary"></i>Лиды по статусам</h6>
+            <div id="leadsChartLoading" class="loading-overlay">
+                <div class="spinner-border spinner-border-sm me-2"></div> Загрузка...
+            </div>
+            <canvas id="leadsChart" style="display:none;"></canvas>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="chart-card">
+            <h6><i class="bi bi-building me-2 text-warning"></i>Контрагенты по типу</h6>
+            <div id="accountsChartLoading" class="loading-overlay">
+                <div class="spinner-border spinner-border-sm me-2"></div> Загрузка...
+            </div>
+            <canvas id="accountsChart" style="display:none;"></canvas>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // TODO: напиши функцию buildLeadsChart(labels, data) — строит bar chart для #leadsChart
+    // TODO: напиши функцию buildAccountsChart(labels, data) — строит bar chart для #accountsChart
+    // TODO: напиши функцию fillStatCards(leadData, accData) — заполняет карточки цифрами (#totalLeads, #totalAccounts, #qualifiedLeads, #rejectedLeads)
+    async function buildLeadsChart(colName, colHeight){
+        const ctx = document.getElementById("leadsChart").getContext("2d");
+
+        new Chart(ctx, {
+            type: "bar",
+            data: {
+                labels: colName,
+                datasets: [{
+                    label: "Лиды",
+                    data: colHeight,
+                    backgroundColor: "#3498db"
+                }]
+            }
+        });
+    }
+
+    async function buildAccountsChart(colName, colHeight){
+         const ctx = document.getElementById("accountsChart").getContext("2d");
+
+         new Chart(ctx, {
+            type: "bar",
+            data: {
+                labels: colName,
+                datasets: [{
+                    label: "Контрагенты",
+                    data: colHeight,
+                    backgroundColor: "#32fg23"
+                }]
+            }
+        });
+    }
+
+    async function fillStatCards(leadData, accData){
+        document.getElementById("totalLeads").textContent = leadData.colHeigt.reduce((acc, item) => acc + item, 0);
+        document.getElementById("totalAccounts").textContent = accData.colHeigt.reduce((acc, item) => acc + item, 0);
+        document.getElementById("rejectedLeads").textContent = leadData.colHeigt[3];
+        document.getElementById("qualifiedLeads").textContent = leadData.colHeigt[2];
+    }
+
+    async function loadDashboard() {
+        const token = localStorage.getItem("token");
+
+        const res = await fetch("/Dashboard/GetGraficsData", {
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const json = await res.json();
+        const leadData = json.leadData;
+        const accData  = json.accData;
+
+        document.getElementById("leadsChartLoading").style.display    = "none";
+        document.getElementById("accountsChartLoading").style.display = "none";
+        document.getElementById("leadsChart").style.display           = "block";
+        document.getElementById("accountsChart").style.display        = "block";
+
+        // TODO: вызови свои функции здесь
+        await buildLeadsChart(leadData.colName, leadData.colHeigt);
+        await buildAccountsChart(accData.colName, accData.colHeigt);
+        await fillStatCards(leadData, accData);
+    }
+
+    loadDashboard();
+</script>

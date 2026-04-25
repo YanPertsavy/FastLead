@@ -106,5 +106,13 @@ namespace FastLead.Repositories
                 })
                 .ToListAsync();
         }
+
+        public async Task<DashboardDTO> GetDashboardDTOAsync()
+        {
+            string[] colName = Enum.GetNames<AccountType>();
+            var groups = await _context.Accounts.GroupBy(x => x.Type).Select(g => new { Key = g.Key, Count = g.Count() }).ToListAsync();
+            int[] colHeight = groups.Select(x => x.Count).ToArray();
+            return new DashboardDTO() { colHeigt = colHeight, colName = colName, };
+        }
     }
 }
