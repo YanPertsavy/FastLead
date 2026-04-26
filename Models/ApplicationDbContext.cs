@@ -44,5 +44,6 @@ namespace FastLead.Models
         public DbSet<User> Users { get; set; }
         public DbSet<Account> Accounts { get; set; }
         public DbSet<Lead> Leads { get; set; }
+        public DbSet<Debt> Debts { get; set; }
     }
 }

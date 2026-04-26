@@ -51,6 +51,7 @@
             </button>
             <ul class="dropdown-menu dropdown-menu-end shadow border-0">
                 <li><a class="dropdown-item" href="javascript:void(0)" onclick="openCreateModal()"><i class="bi bi-plus-lg me-2"></i>Добавить контрагента</a></li>
+                <li><a class="dropdown-item" href="javascript:void(0)" onclick="openCreateModalDebt()"><i class="bi bi-plus-lg me-2"></i>Создать долг</a></li>
                 <li><a class="dropdown-item" href="javascript:void(0)" onclick="exportToExcel()"><i class="bi bi-file-earmark-excel me-2"></i>Экспорт в Excel</a></li>
                 <li><a class="dropdown-item" href="javascript:void(0)" onclick="canselSelection()"><i class="bi bi-x-lg me-2"></i>Отменить выбор</a></li>
                 <li><hr class="dropdown-divider"></li>
@@ -208,6 +209,57 @@
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="addDebtModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-cash-stack me-2"></i>Новый долг
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="addDebtForm">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Контрагент <span class="text-danger">*</span></label>
+                        <select class="form-select" id="debtAccountId"></select>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Сумма долга</label>
+                            <input type="number" class="form-control" id="debtAmount" step="0.01" placeholder="0.00">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Номер договора</label>
+                            <input type="text" class="form-control" id="debtContractNumber" placeholder="ДГ-2024-001">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Наименование услуги</label>
+                        <select class="form-select" id="debtServiceType">
+                            <option value="0">Consulting</option>
+                            <option value="1">Development</option>
+                            <option value="2">Support</option>
+                            <option value="3">Maintenance</option>
+                            <option value="4">Marketing</option>
+                            <option value="5">Other</option>
+                        </select>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="debtIsOverdue">
+                        <label class="form-check-label">Просрочен</label>
+                    </div>
+                    <div class="text-end mt-4">
+                        <button type="button" class="btn btn-light me-2" data-bs-dismiss="modal">Отмена</button>
+                        <button type="submit" class="btn btn-danger px-4">Создать долг</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
         document.addEventListener("DOMContentLoaded", () => 
         {
@@ -380,7 +432,6 @@
     }
 
     function revertToOriginal() {
-        // Просто переоткрываем карту с теми же данными (или вручную возвращаем из backup)
         openEditCard(accountBackup.id);
     }
 
@@ -389,7 +440,6 @@
     }
     
     async function saveChanges() {
-        // Собираем объект из полей
         const updated = {
             Id: document.getElementById("editId").value,
             Name: document.getElementById("editName").value,
@@ -552,6 +602,40 @@
                 this.reset();
                 await loadAccounts();
             }
+    });
+
+        async function openCreateModalDebt() {
+
+        const res = await fetch("/Home/getAccounts", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        const accounts = await res.json();
+        const options = accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+        document.getElementById("debtAccountId").innerHTML = options;
+
+        document.getElementById('addDebtForm').reset();
+        new bootstrap.Modal(document.getElementById('addDebtModal')).show();
+    }
+
+    document.getElementById('addDebtForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const data = {
+            accountId: document.getElementById('debtAccountId').value,
+            amount: parseFloat(document.getElementById('debtAmount').value),
+            contractNumber: document.getElementById('debtContractNumber').value,
+            serviceType: parseInt(document.getElementById('debtServiceType').value),
+            isOverdue: document.getElementById('debtIsOverdue').checked
+        };
+        const response = await fetch('/Debt/Add', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        if (response.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('addDebtModal')).hide();
+            this.reset();
+        }
     });
 
         function getAccountTypeInfo(type) {

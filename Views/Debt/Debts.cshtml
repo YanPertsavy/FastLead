@@ -1,0 +1,426 @@
+﻿@{
+    ViewData["Title"] = "Долги";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="h4 mb-1 text-dark fw-bold">Долги</h2>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb small mb-0">
+                <li class="breadcrumb-item"><a href="/" class="text-decoration-none text-muted">Главная</a></li>
+                <li class="breadcrumb-item active text-secondary">Все долги</li>
+            </ol>
+        </nav>
+    </div>
+
+    <div class="d-flex gap-2">
+        <div class="dropdown">
+            <button class="btn btn-outline-secondary shadow-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+                <i class="bi bi-filter me-2"></i> Фильтры
+            </button>
+            <div class="dropdown-menu dropdown-menu-end border-0 p-3 shadow-lg" style="width: 300px;">
+                <h6 class="mb-3 fw-bold">Фильтрация</h6>
+                <div class="mb-2">
+                    <label class="form-label small fw-bold text-muted">Поле поиска</label>
+                    <select class="form-select form-select-sm" id="filterColumn">
+                        <option value="ContractNumber">Номер договора</option>
+                        <option value="AccountName">Контрагент</option>
+                        <option value="ServiceType">Услуга</option>
+                    </select>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small">Значение</label>
+                    <input type="text" class="form-control form-control-sm" id="filterValue">
+                </div>
+                <hr class="my-3">
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary btn-sm w-100" onclick="getFilters()">Применить</button>
+                    <button class="btn btn-light btn-sm w-100 border" onclick="loadDebts()">Сброс</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="dropdown">
+            <button class="btn btn-success shadow-sm px-4 fw-bold dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                Действия
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+                <li><a class="dropdown-item" href="javascript:void(0)" onclick="openCreateModal()"><i class="bi bi-plus-lg me-2"></i>Добавить долг</a></li>
+                <li><a class="dropdown-item" href="javascript:void(0)" onclick="canselSelection()"><i class="bi bi-x-lg me-2"></i>Отменить выбор</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item text-danger" href="javascript:void(0)" onclick="bulkDelete()" data-role="Admin"><i class="bi bi-trash me-2"></i>Удалить выбранные</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="table-responsive table-scroll-container">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="bg-light text-muted small">
+                <tr>
+                    <th class="ps-4" style="width: 40px;">
+                        <input type="checkbox" class="form-check-input" id="selectAll" onclick="toggleSelectAll(this)">
+                    </th>
+                    <th class="py-3">КОНТРАГЕНТ</th>
+                    <th>СУММА ДОЛГА</th>
+                    <th>НОМЕР ДОГОВОРА</th>
+                    <th>УСЛУГА</th>
+                    <th>ПРОСРОЧЕН</th>
+                    <th class="text-end pe-4">ДЕЙСТВИЯ</th>
+                </tr>
+            </thead>
+            <tbody id="debtsTableBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Карточка редактирования -->
+<div id="editCard" class="card shadow-sm border-0 mt-4" style="display: none;">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center py-3 border-bottom">
+        <h5 class="mb-0 fw-bold text-primary"><i class="bi bi-pencil-square me-2"></i>Карточка: <span id="headerName">...</span></h5>
+        <div id="cardActions">
+            <button id="btnCancelClose" class="btn btn-light border btn-sm px-3" onclick="closeCard()">Закрыть</button>
+            <div id="unsavedActions" style="display: none;">
+                <button class="btn btn-success btn-sm px-3 me-1" onclick="saveChanges()">
+                    <i class="bi bi-check-lg"></i> Сохранить
+                </button>
+                <button class="btn btn-outline-secondary btn-sm px-3" onclick="revertToOriginal()">
+                    Отменить изменения
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <input type="hidden" id="editId">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="mb-2">
+                    <label class="form-label small fw-bold text-muted">Контрагент</label>
+                    <select id="editAccountId" class="form-select edit-field"></select>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-bold text-muted">Сумма долга</label>
+                    <input type="number" id="editAmount" class="form-control edit-field" step="0.01">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-bold text-muted">Номер договора</label>
+                    <input type="text" id="editContractNumber" class="form-control edit-field">
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="mb-2">
+                    <label class="form-label small fw-bold text-muted">Наименование услуги</label>
+                    <select id="editServiceType" class="form-select edit-field">
+                        <option value="0">Consulting</option>
+                        <option value="1">Development</option>
+                        <option value="2">Support</option>
+                        <option value="3">Maintenance</option>
+                        <option value="4">Marketing</option>
+                        <option value="5">Other</option>
+                    </select>
+                </div>
+                <div class="mb-2 mt-3">
+                    <div class="form-check">
+                        <input type="checkbox" id="editIsOverdue" class="form-check-input edit-field">
+                        <label class="form-check-label small fw-bold text-muted">Просрочен</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно добавления -->
+<div class="modal fade" id="addDebtModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="bi bi-plus-lg me-2"></i>Новый долг</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="addDebtForm">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Контрагент <span class="text-danger">*</span></label>
+                        <select class="form-select" id="accAccountId"></select>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Сумма долга</label>
+                            <input type="number" class="form-control" id="accAmount" step="0.01" placeholder="0.00">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Номер договора</label>
+                            <input type="text" class="form-control" id="accContractNumber" placeholder="ДГ-2024-001">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Наименование услуги</label>
+                        <select class="form-select" id="accServiceType">
+                            <option value="0">Consulting</option>
+                            <option value="1">Development</option>
+                            <option value="2">Support</option>
+                            <option value="3">Maintenance</option>
+                            <option value="4">Marketing</option>
+                            <option value="5">Other</option>
+                        </select>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="accIsOverdue">
+                        <label class="form-check-label">Просрочен</label>
+                    </div>
+                    <div class="text-end mt-4">
+                        <button type="button" class="btn btn-light me-2" data-bs-dismiss="modal">Отмена</button>
+                        <button type="submit" class="btn btn-primary px-4">Создать</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        loadDebts();
+        loadAccountsForSelect();
+        setUserRole();
+    });
+
+    async function setUserRole() {
+        const token = localStorage.getItem("jwt_token");
+        if (!token) return;
+        const decoded = parseJwt(token);
+        const role = decoded?.role;
+        document.querySelectorAll('[data-role]').forEach(el => {
+            const allowed = el.getAttribute('data-role').split(',');
+            if (!allowed.includes(role)) el.remove();
+        });
+    }
+
+    function parseJwt(token) {
+        try {
+            const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+            return JSON.parse(decodeURIComponent(window.atob(base64).split('').map(c =>
+                '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')));
+        } catch { return null; }
+    }
+
+    async function loadAccountsForSelect() {
+        const res = await fetch("/Home/getAccounts", { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+        const accounts = await res.json();
+        const options = accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+        document.getElementById("accAccountId").innerHTML = options;
+        document.getElementById("editAccountId").innerHTML = options;
+    }
+
+    async function loadDebts() {
+        const res = await fetch("/Debt/GetAll", { headers: { 'Content-Type': 'application/json' } });
+        const json = await res.json();
+        insertTable(json);
+    }
+
+    function insertTable(json) {
+        const tbody = document.getElementById("debtsTableBody");
+        if (!tbody) return;
+        tbody.innerHTML = "";
+
+        const token = localStorage.getItem("jwt_token");
+        const decoded = parseJwt(token);
+        const userRole = decoded?.role;
+
+        json.forEach(d => {
+            const deleteBtn = (userRole === "Admin")
+                ? `<button class="btn btn-outline-danger btn-sm border-0" onclick="deleteDebt(${d.id})"><i class="bi bi-trash3"></i></button>`
+                : "";
+
+            const editLink = (userRole === "Moderator" || userRole === "Admin")
+                ? `<a href="javascript:void(0)" onclick="openEditCard(${d.id})" class="text-decoration-none fw-bold text-primary d-block">${d.accountName ?? "—"}</a>`
+                : `<span class="fw-bold text-primary d-block">${d.accountName ?? "—"}</span>`;
+
+            tbody.insertAdjacentHTML('beforeend', `
+                <tr id="row-${d.id}">
+                    <td class="ps-4">
+                        <input type="checkbox" class="form-check-input debt-checkbox" value="${d.id}">
+                    </td>
+                    <td>${editLink}</td>
+                    <td><span class="fw-bold">${d.amount.toFixed(2)} </span></td>
+                    <td><span class="text-muted small">${d.contractNumber}</span></td>
+                    <td><span class="badge-custom bg-blue">${d.serviceType}</span></td>
+                    <td>${d.isOverdue
+                        ? '<span class="badge-custom bg-red">Да</span>'
+                        : '<span class="badge-custom bg-green">Нет</span>'}</td>
+                    <td class="text-end pe-4">${deleteBtn}</td>
+                </tr>`);
+        });
+    }
+
+    let debtBackup = {};
+
+    async function openEditCard(id) {
+        const res = await fetch(`/Debt/GetById?id=${id}`);
+        const d = await res.json();
+        debtBackup = JSON.parse(JSON.stringify(d));
+
+        document.getElementById("editId").value = d.id;
+        document.getElementById("editAccountId").value = d.accountId;
+        document.getElementById("editAmount").value = d.amount;
+        document.getElementById("editContractNumber").value = d.contractNumber;
+        document.getElementById("editServiceType").value = d.serviceType;
+        document.getElementById("editIsOverdue").checked = d.isOverdue;
+        document.getElementById("headerName").innerText = d.contractNumber || "Без номера";
+
+        document.getElementById("editCard").style.display = "block";
+        showUnsavedActions(false);
+        document.getElementById("editCard").scrollIntoView({ behavior: 'smooth' });
+    }
+
+    document.querySelectorAll('.edit-field').forEach(input => {
+        input.addEventListener('input', () => showUnsavedActions(checkAnyChanges()));
+        input.addEventListener('change', () => showUnsavedActions(checkAnyChanges()));
+    });
+
+    function checkAnyChanges() {
+        return parseInt(document.getElementById("editAccountId").value) !== debtBackup.accountId ||
+               parseFloat(document.getElementById("editAmount").value) !== debtBackup.amount ||
+               document.getElementById("editContractNumber").value !== (debtBackup.contractNumber || "") ||
+               parseInt(document.getElementById("editServiceType").value) !== debtBackup.serviceType ||
+               document.getElementById("editIsOverdue").checked !== debtBackup.isOverdue;
+    }
+
+    function showUnsavedActions(visible) {
+        document.getElementById("btnCancelClose").style.display = visible ? "none" : "inline-block";
+        document.getElementById("unsavedActions").style.display = visible ? "inline-block" : "none";
+    }
+
+    function revertToOriginal() { openEditCard(debtBackup.id); }
+    function closeCard() { document.getElementById("editCard").style.display = "none"; }
+
+    async function saveChanges() {
+        const updated = {
+            Id: parseInt(document.getElementById("editId").value),
+            AccountId: parseInt(document.getElementById("editAccountId").value),
+            Amount: parseFloat(document.getElementById("editAmount").value),
+            ContractNumber: document.getElementById("editContractNumber").value,
+            ServiceType: parseInt(document.getElementById("editServiceType").value),
+            IsOverdue: document.getElementById("editIsOverdue").checked
+        };
+        const res = await fetch('/Debt/Update', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updated)
+        });
+        if (res.ok) { loadDebts(); showUnsavedActions(false); closeCard(); }
+    }
+
+    async function deleteDebt(id) {
+        const res = await fetch(`/Debt/Delete?id=${id}`, { method: "DELETE" });
+        if (res.ok) document.getElementById(`row-${id}`).remove();
+    }
+
+    function openCreateModal() {
+        document.getElementById('addDebtForm').reset();
+        new bootstrap.Modal(document.getElementById('addDebtModal')).show();
+    }
+
+    document.getElementById('addDebtForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const data = {
+            accountId: parseInt(document.getElementById('accAccountId').value),
+            amount: parseFloat(document.getElementById('accAmount').value),
+            contractNumber: document.getElementById('accContractNumber').value,
+            serviceType: parseInt(document.getElementById('accServiceType').value),
+            isOverdue: document.getElementById('accIsOverdue').checked
+        };
+        const res = await fetch('/Debt/Add', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        if (res.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('addDebtModal')).hide();
+            this.reset();
+            await loadDebts();
+        }
+    });
+
+    function toggleSelectAll(master) {
+        document.querySelectorAll('.debt-checkbox').forEach(cb => cb.checked = master.checked);
+    }
+
+    function canselSelection() {
+        document.querySelectorAll('.debt-checkbox').forEach(cb => cb.checked = false);
+        document.getElementById("selectAll").checked = false;
+    }
+
+    function getCheckedIds() {
+        return Array.from(document.querySelectorAll('.debt-checkbox:checked')).map(cb => cb.value);
+    }
+
+    async function bulkDelete() {
+        const ids = getCheckedIds();
+        if (!ids.length) return;
+        const res = await fetch("/Debt/DeleteRange", {
+            method: "DELETE",
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(ids.map(Number))
+        });
+        if (res.ok) { ids.forEach(id => document.getElementById(`row-${id}`)?.remove()); canselSelection(); }
+    }
+
+    async function getFilters() {
+        const params = new URLSearchParams({
+            field: document.getElementById("filterColumn").value,
+            value: document.getElementById("filterValue").value
+        });
+        const res = await fetch(`/Debt/GetFilters?${params.toString()}`);
+        const json = await res.json();
+        insertTable(json);
+    }
+</script>
+
+<style>
+    .badge-custom {
+        padding: 4px 10px;
+        border-radius: 50px;
+        font-size: 0.7rem;
+        font-weight: 600;
+    }
+
+    .bg-blue {
+        background-color: #eef6ff;
+        color: #007bff;
+    }
+
+    .bg-green {
+        background-color: #e8fadf;
+        color: #28a745;
+    }
+
+    .bg-red {
+        background-color: #ffeef0;
+        color: #dc3545;
+    }
+
+    .dropdown-menu {
+        border-radius: 12px;
+        margin-top: 10px !important;
+    }
+
+    .table-hover tbody tr:hover {
+        background-color: #f8fbff;
+    }
+
+    .table-scroll-container {
+        max-height: 65vh;
+        overflow-y: auto;
+    }
+
+    .table thead th {
+        position: sticky;
+        top: 0;
+        background-color: #f8f9fa !important;
+        z-index: 10;
+        box-shadow: inset 0 -1px 0 #dee2e6;
+    }
+</style>

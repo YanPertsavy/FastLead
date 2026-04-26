@@ -63,10 +63,18 @@
     <div class="sidebar">
         <div class="p-4 text-center"><h4>FastLead</h4></div>
         <nav class="nav flex-column">
-            <a class="nav-link @(ViewData["Title"]?.ToString() == "Контрагенты" ? "active" : "")" href="/Home/Accounts"><i class="bi bi-speedometer2 me-2"></i> Контрагенты</a>
-            <a class="nav-link @(ViewData["Title"]?.ToString() == "Лиды" ? "active" : "")" href="/Lead/Leads"><i class="bi bi-funnel me-2"></i> Лиды</a>
-            <a class="nav-link @(ViewData["Title"]?.ToString() == "Инфо" ? "active" : "")" href="/Dashboard/Info"><i class="bi bi-speedometer2 me-2"></i> Инфо</a>
-            <a class="nav-link" href="#"><i class="bi bi-calendar-event me-2"></i> Активности</a>
+            <a class="nav-link @(ViewData["Title"]?.ToString() == "Контрагенты" ? "active" : "")" href="/Home/Accounts">
+                <i class="bi bi-building me-2"></i> Контрагенты
+            </a>
+            <a class="nav-link @(ViewData["Title"]?.ToString() == "Лиды" ? "active" : "")" href="/Lead/Leads">
+                <i class="bi bi-funnel me-2"></i> Лиды
+            </a>
+            <a class="nav-link @(ViewData["Title"]?.ToString() == "Инфо" ? "active" : "")" href="/Dashboard/Info">
+                <i class="bi bi-bar-chart-line me-2"></i> Инфо
+            </a>
+            <a class="nav-link @(ViewData["Title"]?.ToString() == "Долги" ? "active" : "")" href="/Debt/Debts">
+                <i class="bi bi-cash-stack me-2"></i> Долги
+            </a>
         </nav>
     </div>
 

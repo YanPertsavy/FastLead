@@ -11,9 +11,11 @@ namespace FastLead.Controllers
     public class HomeController : Controller
     {
         private readonly IAccountRepository _accountRepository;
-        public HomeController(IAccountRepository accountRepository) 
+        private readonly IDebtRepository _debtRepository;
+        public HomeController(IAccountRepository accountRepository, IDebtRepository debtRepository) 
         { 
             _accountRepository = accountRepository;
+            _debtRepository = debtRepository;
         }
         public IActionResult Accounts()
         {
@@ -91,7 +93,7 @@ namespace FastLead.Controllers
         [HttpPost]
         public async Task<IActionResult> AddAccount([FromBody] Account account)
         {
-            _accountRepository.CreateAsync(account);
+            await _accountRepository.CreateAsync(account);
             return Ok();
         }
     }

@@ -50,7 +50,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<IAccountRepository, AccountRepository>();
-builder.Services.AddScoped<ILeadRepository, LeadRepository>();
+builder.Services.AddScoped<ILeadRepository, LeadRepository>(); 
+builder.Services.AddScoped<IDebtRepository, DebtRepository>();
 
 var app = builder.Build();
 
