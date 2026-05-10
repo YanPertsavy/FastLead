@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using System.IdentityModel.Tokens.Jwt;
 using Microsoft.AspNetCore.Authentication;
+using System.Reflection.Metadata.Ecma335;
 
 namespace FastLead.Models
 {
@@ -12,7 +13,6 @@ namespace FastLead.Models
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, IHttpContextAccessor httpContextAccessor)
             : base(options)
         {
-            Database.EnsureCreated();
             _httpContextAccessor = httpContextAccessor;
         }
 
@@ -21,7 +21,18 @@ namespace FastLead.Models
             var entities = ChangeTracker.Entries()
                 .Where(e => (e.Entity is IAuditable) && (e.State == EntityState.Modified || e.State == EntityState.Added));
 
-            var token = await _httpContextAccessor.HttpContext.GetTokenAsync("access_token");
+            if(!entities.Any())
+            {
+                return await base.SaveChangesAsync(cancellationToken);
+            }
+            string? token = _httpContextAccessor?.HttpContext is HttpContext context
+            ? await context.GetTokenAsync("access_token")
+            : null;
+
+            if (string.IsNullOrEmpty(token))
+            {
+                return await base.SaveChangesAsync(cancellationToken);
+            }
             var handler = new JwtSecurityTokenHandler();
             var jwtSecurityToken = handler.ReadJwtToken(token);
             var name = jwtSecurityToken.Claims.First(claim => claim.Type == "unique_name").Value ?? "System";

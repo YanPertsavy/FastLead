@@ -27,7 +27,7 @@
                 return false;
             }
             string hashedPassword = PasswordHasher.GeneratePassword(password);
-            await _userRepo.AddAsync(User.Create(new Guid(), Name, hashedPassword));
+            await _userRepo.AddAsync(User.Create(Guid.NewGuid(), Name, hashedPassword));
             return true;
         }
 

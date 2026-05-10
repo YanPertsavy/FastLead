@@ -132,7 +132,7 @@
                 datasets: [{
                     label: "Контрагенты",
                     data: colHeight,
-                    backgroundColor: "#32fg23"
+                    backgroundColor: "#32c823"
                 }]
             }
         });
@@ -146,7 +146,6 @@
     }
 
     async function loadDashboard() {
-        const token = localStorage.getItem("token");
 
         const res = await fetch("/Dashboard/GetGraficsData", {
             method: "POST",

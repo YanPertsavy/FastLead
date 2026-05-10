@@ -12,31 +12,30 @@
             _context = context;
         }
 
-        // 1. Нахождение по ID
         public async Task<User?> GetByIdAsync(Guid id)
         {
             return await _context.Users.FindAsync(id);
         }
 
-        // 2. Добавление одного юзера
         public async Task AddAsync(User user)
         {
             await _context.Users.AddAsync(user);
             await _context.SaveChangesAsync();
         }
 
-        // 3. Добавление списка юзеров
         public async Task AddRangeAsync(IEnumerable<User> users)
         {
             await _context.Users.AddRangeAsync(users);
             await _context.SaveChangesAsync();
         }
 
-        // 4. Удаление (по объекту или по ID)
         public async Task DeleteAsync(Guid id)
         {
             var user = await _context.Users.FindAsync(id);
-
+            if (user == null)
+            {
+                return;
+            }
             _context.Users.Remove(user);
             await _context.SaveChangesAsync();
         }
@@ -52,8 +51,7 @@
             return await _context.Users.AnyAsync(u => u.Name == Name);
         }
 
-        // Дополнительный полезный метод для логина
-        public async Task<User> GetByUsernameAsync(string username)
+        public async Task<User?> GetByUsernameAsync(string username)
         {
             return await _context.Users?.FirstOrDefaultAsync(u => u.Name == username);
         }

@@ -1,9 +1,11 @@
 ﻿using FastLead.DTO;
 using FastLead.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FastLead.Controllers
 {
+    [Authorize]
     public class DashboardController : Controller
     {
         private readonly IAccountRepository _accountRepository;
